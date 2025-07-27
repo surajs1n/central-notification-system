@@ -33,15 +33,6 @@ erDiagram
         created_at TIMESTAMP
         updated_at TIMESTAMP
     }
-    
-    PROCESSING_STATE {
-        notification_id UUID PK
-        current_step VARCHAR
-        attempt_count INT
-        next_retry TIMESTAMP
-    }
-    
-    NOTIFICATIONS ||--o{ PROCESSING_STATE : has
 ```
 
 **Status Enums**:
@@ -52,24 +43,17 @@ erDiagram
 - `RETRYING`: Scheduled for retry
 - `DLQ`: In dead-letter queue
 
-**Processing Steps**:
-- `VALIDATING`: Verifying input data
-- `TEMPLATING`: Rendering content
-- `RATE_CHECK`: Applying rate limits
-- `DELIVERING`: Sending via channel
-- `COMPLETED`: Final state
-
 ## 4. Key Algorithms
 - **Processing Workflow**:
   ```python
   def process_event(event):
       validate(event)
-      preferences = get_preferences(event.user_id)
-      template = render_template(event.template_id, event.parameters)
       if rate_limit_exceeded(event):
           delay_processing(event)
       else:
           deliver(event, preferences, template)
+      preferences = get_preferences(event.user_id)
+      template = render_template(event.template_id, event.parameters)
   ```
 - **Retry Strategy**:
   - Exponential backoff

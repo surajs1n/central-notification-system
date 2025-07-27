@@ -1,17 +1,16 @@
 # Rate Limit Service Design
 
 ## 1. Responsibilities
-- Global rate limiting across all services
 - Per-client request throttling
-- Burst handling and quota management
+- User-level request quota management
 - Real-time rate limit analytics
 
 ## 2. APIs
 ### 2.1 Internal APIs
 | Endpoint | Method | Parameters | Description |
 |----------|--------|------------|-------------|
-| `/internal/rate-limit/check` | POST | `{ client_id, service, count }` | Check and consume rate limit tokens |
-| `/internal/rate-limit/stats` | GET | `client_id, service` | Get current rate limit stats |
+| `/internal/rate-limit/check` | POST | `{ client_id, count }` | Check and consume rate limit tokens |
+| `/internal/rate-limit/stats` | GET | `client_id` | Get current rate limit stats |
 
 ### 2.2 Admin APIs
 | Endpoint | Method | Access Level | Description |
@@ -19,8 +18,6 @@
 | `/admin/rate-limit/clients/{id}` | PUT | Admin | Update client rate limits |
 | `/admin/rate-limit/users/{id}` | PUT | Admin | Update user rate limits |
 | `/admin/rate-limit/reset` | POST | Admin | Reset rate limits |
-
-**Note**: Removed burst limit configuration as requested
 
 ## 3. Data Model
 ```mermaid
@@ -91,7 +88,7 @@ erDiagram
 ```mermaid
 graph TD
     RateLimitService --> RedisCluster[(Redis Cluster)]
-    RateLimitService --> MonitoringService
+    RateLimitService --> PostgresDB[(PostgreDB)]
 ```
 
 ## 8. Size Estimations
@@ -99,7 +96,3 @@ graph TD
   - Config: 10,000 rules × 0.5KB = 5MB
   - State: 1M counters × 0.1KB = 100MB
   - **Total**: 105MB
-- **Throughput**: 
-  - 5,000 checks/sec × 0.5KB = 2.5MB/s
-- **Memory**: 
-  - 4GB per instance × 3 replicas = 12GB

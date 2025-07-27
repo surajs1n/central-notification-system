@@ -9,9 +9,9 @@
 
 ## 2. APIs
 ### 2.1 Core APIs
-| Endpoint | Method | Parameters | Description |
-|----------|--------|------------|-------------|
-| `/v1/notifications` | POST | `{ client_id, user_id, template_id, parameters }` | Primary notification ingestion endpoint |
+| Endpoint | Method | Parameters                                                             | Description |
+|----------|--------|------------------------------------------------------------------------|-------------|
+| `/v1/notifications` | POST | `{ idempotency_id, client_api_key, user_id, template_id, parameters }` | Primary notification ingestion endpoint |
 
 ### 2.2 Admin APIs
 | Endpoint | Method | Access Level | Description |
@@ -29,7 +29,6 @@ erDiagram
         event_type VARCHAR
         status ENUM
         created_at TIMESTAMP
-        processed_at TIMESTAMP
     }
     
     EVENT_QUEUE_MAPPING {

@@ -31,6 +31,7 @@ erDiagram
     
     CHANNEL_PREFERENCES {
         user_id UUID FK
+        client_id UUID 
         channel VARCHAR
         enabled BOOLEAN
         priority INT
@@ -44,7 +45,7 @@ erDiagram
   ```python
   def get_effective_preferences(user_id):
       global_prefs = get_global_prefs(user_id)
-      client_prefs = get_client_prefs(user_id)
+      client_prefs = get_client_prefs(user_id, client_id)
       return merge_prefs(global_prefs, client_prefs)
   ```
 - **Fallback Calculation**:
@@ -73,7 +74,3 @@ graph TD
   - 100M users × 1KB = 100GB
   - Channel preferences: 500M × 0.5KB = 250GB
   - **Total**: 350GB
-- **Throughput**: 
-  - 500 preference lookups/sec × 2KB = 1MB/s
-- **Memory**: 
-  - 2GB per instance × 3 replicas = 6GB

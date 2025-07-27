@@ -31,24 +31,6 @@ erDiagram
         config JSONB
         is_active BOOLEAN
     }
-    
-    PROVIDER_METRICS {
-        provider_id UUID PK
-        success_rate FLOAT
-        avg_latency FLOAT
-        last_checked TIMESTAMP
-    }
-    
-    DELIVERY_LOGS {
-        id UUID PK
-        provider_id UUID FK
-        status ENUM
-        timestamp TIMESTAMP
-        error_message TEXT
-    }
-    
-    PROVIDERS ||--o{ PROVIDER_METRICS : has
-    PROVIDERS ||--o{ DELIVERY_LOGS : has
 ```
 
 ## 4. Key Algorithms
@@ -71,7 +53,7 @@ erDiagram
 | CHANNEL_4004 | Unsupported channel | No | 400 |
 
 ## 6. Dependencies
-- External provider APIs (Twilio, SendGrid, etc.)
+- External provider APIs
 - Monitoring Service: Delivery metrics
 - Geo Service: Regional provider selection
 - Rate Limit Service: Provider-specific throttling

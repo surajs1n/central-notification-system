@@ -90,7 +90,3 @@ graph TD
   - Templates: 10,000 × 10KB = 100MB
   - Versions: 50,000 × 12KB = 600MB
   - **Total**: 700MB
-- **Throughput**: 
-  - 200 renders/sec × 5KB = 1MB/s
-- **Memory**: 
-  - 2GB per instance × 2 replicas = 4GB (caching)

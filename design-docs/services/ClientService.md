@@ -10,14 +10,13 @@
 ### 2.1 Internal APIs
 | Endpoint | Method | Parameters | Description |
 |----------|--------|------------|-------------|
-| `/internal/clients` | POST | `{ name, contact, rate_limit }` | Register new client |
+| `/internal/clients` | POST | `{ name, contact }` | Register new client |
 | `/internal/clients/{id}` | GET | - | Get client details |
 
 ### 2.2 Admin APIs
 | Endpoint | Method | Access Level | Description |
 |----------|--------|--------------|-------------|
 | `/admin/clients` | GET | Admin | List all clients |
-| `/admin/clients/{id}/rate-limits` | PUT | Admin | Update rate limits |
 | `/admin/clients/{id}/status` | PATCH | Admin | Update client status |
 
 ## 3. Data Model
@@ -41,16 +40,12 @@ erDiagram
     CLIENTS ||--o{ API_KEYS : has
 ```
 
-**Note**: Rate limit configuration moved to Rate Limit Service
-
 ## 4. Key Algorithms
 - **API Key Generation**:
   ```python
   def generate_api_key():
       return secrets.token_urlsafe(32)
   ```
-- **Rate Limit Configuration**:
-  - Uses token bucket algorithm with configurable burst
 
 ## 5. Error Handling
 | Code | Message | Retryable | HTTP Status |
@@ -61,13 +56,11 @@ erDiagram
 
 ## 6. Dependencies
 - PostgreSQL: Primary data store
-- Redis: Rate limit counters
 
 ## 7. Deployment Architecture
 ```mermaid
 graph TD
     ClientService --> PostgreSQL[(PostgreSQL)]
-    ClientService --> AuthService
 ```
 
 ## 8. Size Estimations
@@ -75,7 +68,3 @@ graph TD
   - Clients: 1000 × 1KB = 1MB
   - API Keys: 3000 × 0.5KB = 1.5MB
   - **Total**: 2.5MB
-- **Throughput**: 
-  - 50 requests/sec × 2KB = 100KB/s
-- **Memory**: 
-  - 512MB per instance × 2 replicas = 1GB
