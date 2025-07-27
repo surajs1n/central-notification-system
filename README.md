@@ -97,7 +97,7 @@ API Throughput = [(RPS × 3KB) + (RPS × 0.5KB)] ÷ 1024 MB/s
 ## 6. High-Level Design
 ### 6.1 Selected Architecture
 ![High Level Diagram](notification-hld.png)
-**Scalability**: Supports 500M+ users through geo-sharding and multi-cluster deployment
+**Scalability**: Supports 500M+ users through geo-sharding deployment
 
 ## 7. Service Architecture
 Detailed service specifications are maintained in separate documents:
@@ -117,7 +117,7 @@ Detailed service specifications are maintained in separate documents:
 sequenceDiagram
     participant C as Client
     participant I as IngestionService
-    participant Q as Kafka
+    participant Q as Kafka/SQS
     participant Core as CoreService
     participant U as UserService
     participant T as TemplateService
@@ -127,27 +127,29 @@ sequenceDiagram
     C->>I: POST /notifications {idempotency_key}
     I->>Q: Enqueue message
     Q->>Core: Dequeue message
+    Core->>RateLimit: Check limits
     Core->>U: Get user preferences
     Core->>T: Render template
-    Core->>RateLimit: Check limits
     Core->>Ch: Deliver notification
     Ch->>P: Send via provider
     P-->>Ch: Delivery status
     Ch-->>Core: Result
-    Core-->>Q: Commit offset
+    Core-->>Q: Commit/Acknowledge
 ```
 
 ## 8. Monitoring & Alerting
 ### Key Metrics
 - `notification_success_rate` (SLO: 99.9%)
 - `delivery_latency_p95` (Threshold: 500ms)
-- `dead_letter_queue_size` (Threshold: 500)
+- `dead_letter_queue_size` (Threshold: 500 for non-critical , 50 for critical queues)
+- `age_of_older_message` (Threshold: 900 sec for critical message, 1hr for non-critical messages)
 - `provider_error_rate` (Threshold: 1%)
 
 ### Alert Conditions
 - `notification_success_rate < 99.9% for 5m`
 - `delivery_latency_p95 > 1000ms`
-- `dead_letter_queue_size > 500`
+- `dead_letter_queue_size > 500 for non-critical , 50 for critical queues`
+- `age_of_oldest_message > 900 sec for critical message, 1hr for non-critical messages`
 
 ## 9. Reliability System
 ### State Machine
@@ -178,39 +180,37 @@ def handle_notification(idempotency_key):
     redis.setex(idempotency_key, 48*3600, "delivered")
 ```
 
-*Redis cluster optimized for 25K+ RPS idempotency checks*
-
 ## 10. Deployment Architecture
 ```mermaid
 flowchart TB
-    subgraph Global
-        Primary[Primary Cluster]
+    subgraph API Gateway
+        Primary[Primary Router]
     end
 
-    subgraph US-East
+    subgraph USA
         US_Ingestion[IngestionService]
         US_Core[CoreService]
-        US_Kafka[(Kafka)]
+        US_Kafka[(Kafka/SQS)]
         US_DB[(PostgreSQL)]
     end
 
-    subgraph EU-West
+    subgraph Europe
         EU_Ingestion[IngestionService]
         EU_Core[CoreService]
-        EU_Kafka[(Kafka)]
+        EU_Kafka[(Kafka/SQS)]
         EU_DB[(PostgreSQL)]
     end
 
-    subgraph AP-Southeast
+    subgraph Asia
         AP_Ingestion[IngestionService]
         AP_Core[CoreService]
-        AP_Kafka[(Kafka)]
+        AP_Kafka[(Kafka/SQS)]
         AP_DB[(PostgreSQL)]
     end
 
-    Primary --> US-East
-    Primary --> EU-West
-    Primary --> AP-Southeast
+    Primary --> USA
+    Primary --> Europe
+    Primary --> Asia
 
     US_Ingestion --> US_Kafka
     US_Core --> US_Kafka
@@ -224,38 +224,3 @@ flowchart TB
     AP_Core --> AP_Kafka
     AP_Core --> AP_DB
 ```
-
-## 11. Appendices
-### API Specifications
-**Endpoint**: `POST /notifications`  
-**Request**:
-```json
-{
-  "client_id": "cli_12345",
-  "user_id": "usr_67890",
-  "template_id": "tpl_newsletter",
-  "parameters": {"name": "John", "amount": 125.00},
-  "idempotency_key": "uuidv4"
-}
-```
-
-**Response**:
-```json
-{
-  "notification_id": "notif_abc123",
-  "status": "queued",
-  "estimated_delivery": "2023-08-01T12:00:00Z"
-}
-```
-
-### Template Example
-```handlebars
-Hello {{name}},
-
-Your energy usage for {{month}} is {{usage}} kWh. 
-Estimated bill: ${{amount}}.
-
-Save energy with these tips:
-{{#each tips}}
-- {{this}}
-{{/each}}
